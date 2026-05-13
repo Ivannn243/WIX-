@@ -1,0 +1,63 @@
+This implementation is a functional reference. Do not use it in production without completing the hardening steps below.
+
+1. Callback Authenticity
+The callback endpoint /_functions/focasCallback is public. Without token validation, a malicious actor could forge callback requests and mark orders as paid without a real payment.
+Before production, verify all of the following in the callback handler:
+
+The pending order (lidm) exists in FocasPendingOrders
+The order status is not already PAID (prevent duplicate processing)
+The returned authAmt matches the original purchAmt
+The returned merID matches your own merchant ID
+The respToken is valid, if token verification is enabled by the bank
+
+
+2. reqToken / respToken Validation
+If First Bank enables FOCAS parameter verification for your account, implement:
+
+reqToken — sent with the payment request to FOCAS
+respToken — returned in the callback from FOCAS
+
+Do not commit the verification key or token secret to GitHub.
+Use a placeholder in code:
+jsconst FOCAS_VERIFY_KEY = "YOUR_FOCAS_VERIFY_KEY"; // replace before production
+
+3. Amount Matching
+Before marking an order as PAID, always compare:
+
+focasParams.purchAmt — the original amount stored in FocasPendingOrders
+authAmt — the amount returned in the FOCAS callback
+
+They must match exactly. If they differ, do not mark the order as paid and log the discrepancy.
+
+4. Duplicate Callback Protection
+FOCAS may retry a callback if it does not receive a valid response.
+Before calling submitEvent(), check:
+
+Is the pending order already PAID?
+Is submitEventStatus already SUBMITTED?
+
+If either is true, skip the submitEvent() call to avoid duplicate order updates.
+
+5. CMS Permissions
+Do not allow public users to write to payment collections in production.
+Recommended permissions for both FocasPendingOrders and FocasOrders:
+PermissionSettingReadAdminCreateAdminUpdateAdminDeleteAdmin
+The backend uses { suppressAuth: true } so Velo backend code can still write to these collections without requiring public access.
+
+6. Sensitive Data — Do Not Store or Commit
+Never store or commit any of the following:
+
+Full card numbers (pan) — remove from FocasOrders before production
+Bank backend account credentials
+reqToken verification parameters or secrets
+Raw production payment callbacks
+Production transaction CSV exports
+Real MerchantID, TerminalID, or merID values
+
+
+7. Logging
+Debug logs are useful during development. In production:
+
+Do not log full callback bodies containing card data
+Do not log merchant credentials
+Remove or gate all console.log calls that expose transaction details before going live

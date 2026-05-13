@@ -1,0 +1,41 @@
+# Wix × First Bank FOCAS Payment Provider
+
+This repository provides a reference implementation for integrating **Wix Velo Payment Provider Service Plugin** with **First Bank / FISC FOCAS credit card payment flow**.
+
+This project demonstrates:
+
+- Wix Payment Provider Service Plugin setup
+- Hosted payment redirect flow
+- HTML Form POST redirect to FOCAS
+- Wix HTTP Functions callback handling
+- Wix CMS payment record logging
+- Success / failed payment return pages
+- Optional Wix Orders payment status update through `submitEvent()`
+
+> This repository is for educational and integration reference only.  
+> Do not commit real merchant credentials, bank credentials, verification keys, callback secrets, or production transaction records.
+
+---
+
+## Architecture
+
+```text
+Wix Checkout
+  ↓
+FirstBank.js createTransaction()
+  ↓
+Save pending payment data to FocasPendingOrders
+  ↓
+Redirect to /_functions/focasRedirect?lidm=...
+  ↓
+http-functions.js generates HTML Form POST
+  ↓
+FOCAS hosted credit card payment page
+  ↓
+FOCAS posts payment result to /_functions/focasCallback
+  ↓
+Wix saves payment result to FocasOrders
+  ↓
+Optional submitEvent() updates Wix Orders
+  ↓
+Redirect to /payment-success or /payment-failed
